@@ -44,18 +44,21 @@ def val(net, val_loader, criterion, iteration, max_i=1000):
     net.eval()
     i = 0
     n_correct = 0
-    loss_avg = utils.averager()
+    val_loss_avg = utils.averager()
 
     for i_batch, (image, index) in enumerate(val_loader):
         image = image.to(device)
         label = utils.get_batch_label(val_dataset, index)
         preds = crnn(image)
+        preds = preds.to(torch.float64)
+        preds = preds.to(device)
         batch_size = image.size(0)
         index = np.array(index.data.numpy())
         text, length = converter.encode(label)
+        text = text.to(device)
         preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
         cost = criterion(preds, text, preds_size, length) / batch_size
-        loss_avg.add(cost)
+        val_loss_avg.add(cost)
         _, preds = preds.max(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
@@ -67,16 +70,16 @@ def val(net, val_loader, criterion, iteration, max_i=1000):
             print('[%d/%d][%d/%d]' %
                       (iteration, params.niter, i_batch, len(val_loader)))
 
-        if i_batch == max_i:
-            break
+        # if i_batch == max_i:
+        #     break
     raw_preds = converter.decode(preds.data, preds_size.data, raw=True)[:params.n_test_disp]
     for raw_pred, pred, gt in zip(raw_preds, sim_preds, label):
         print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
 
-    print(n_correct)
-    print(max_i * params.val_batchSize)
-    accuracy = n_correct / float(max_i * params.val_batchSize)
-    print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
+    # print(n_correct)
+    print("{} of {} is correct".format(n_correct, i_batch * params.val_batchSize))
+    accuracy = n_correct / float(i_batch * params.val_batchSize)
+    print('Test loss: %f, accuray: %f' % (val_loss_avg.val(), accuracy))
 
     return accuracy
 
@@ -89,9 +92,12 @@ def train(crnn, train_loader, criterion, iteration):
         image = image.to(device)
         label = utils.get_batch_label(dataset, index)
         preds = crnn(image)
+        preds = preds.to(torch.float64)
+        preds = preds.to(device)
         batch_size = image.size(0)
         index = np.array(index.data.numpy())
         text, length = converter.encode(label)
+        text = text.to(device)
         preds_size = torch.IntTensor([preds.size(0)] * batch_size)
         # print(preds.shape, text.shape, preds_size.shape, length.shape)
         # torch.Size([41, 16, 6736]) torch.Size([160]) torch.Size([16]) torch.Size([16])
@@ -111,16 +117,25 @@ def main(crnn, train_loader, val_loader, criterion, optimizer):
     crnn = crnn.to(device)
     certerion = criterion.to(device)
     Iteration = 0
+    params.best_accuracy = 0.0
     while Iteration < params.niter:
         train(crnn, train_loader, criterion, Iteration)
         ## max_i: cut down the consuming time of testing, if you'd like to validate on the whole testset, please set it to len(val_loader)
         accuracy = val(crnn, val_loader, criterion, Iteration, max_i=1000)
         for p in crnn.parameters():
             p.requires_grad = True
+        
+        if Iteration % 50 == 1:
+            print("saving checkpoint...")
+            torch.save(crnn.state_dict(), '{0}/crnn_Rec_done_{1}_{2}.pth'.format(params.experiment, Iteration, accuracy))
+            print("done")
         if accuracy > params.best_accuracy:
+            params.best_accuracy = accuracy
+            print('saving best acc....')
             torch.save(crnn.state_dict(), '{0}/crnn_Rec_done_{1}_{2}.pth'.format(params.experiment, Iteration, accuracy))
             torch.save(crnn.state_dict(), '{0}/crnn_best.pth'.format(params.experiment))
-        print("is best accuracy: {0}".format(accuracy > params.best_accuracy))
+            print('done')
+        # print("is best accuracy: {0}".format(accuracy > params.best_accuracy))
         Iteration+=1
 
 def backward_hook(self, grad_input, grad_output):
@@ -136,19 +151,22 @@ if __name__ == '__main__':
     np.random.seed(manualSeed)
     torch.manual_seed(manualSeed)
     cudnn.benchmark = True
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     # alphabet = alphabet = utils.to_alphabet("H:/DL-DATASET/BaiduTextR/train.list")
 
     # store model path
-    if not os.path.exists('./expr'):
-        os.mkdir('./expr')
+    if not os.path.exists(params.experiment):
+        os.mkdir(params.experiment)
     # read train set
     # dataset = baiduDataset("H:/DL-DATASET/BaiduTextR/train_images/train_images", "H:/DL-DATASET/BaiduTextR/train.list", params.alphabet, True)
-    dataset = baiduDataset("H:/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/train.txt", params.alphabet, False, (params.imgW, params.imgH))
-    val_dataset = baiduDataset("H:/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/test.txt", params.alphabet, False, (params.imgW, params.imgH))
+    # dataset = baiduDataset("H:/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/train.txt", params.alphabet, False, (params.imgW, params.imgH))
+    # val_dataset = baiduDataset("H:/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/test.txt", params.alphabet, False, (params.imgW, params.imgH))
     # dataset = baiduDataset("/media/hane/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/train.txt", params.alphabet, False)
     # val_dataset = baiduDataset("/media/hane/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/test.txt", params.alphabet, False)
-
+    dataset = baiduDataset("/uuz/song/datasets/ocr/train_items", "/home/song/workplace/OCR/ocr_idcard/label/train/train_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    val_dataset = baiduDataset("/uuz/song/datasets/ocr/train_items", "/home/song/workplace/OCR/ocr_idcard/label/val/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+                                                                #   /home/song/workplace/OCR/ocr_idcard/label/train/train_label_birth_d.txt
     train_loader = DataLoader(dataset, batch_size=params.batchSize, shuffle=True, num_workers=params.workers)
     # shuffle=True, just for time consuming.
     val_loader = DataLoader(val_dataset, batch_size=params.val_batchSize, shuffle=True, num_workers=params.workers)
