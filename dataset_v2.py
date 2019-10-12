@@ -10,7 +10,6 @@ from skimage.transform import resize
 import utils
 import params
 from PIL import Image
-
 class baiduDataset(Dataset):
 	def __init__(self, img_root, label_path, alphabet, isBaidu, resize, transforms=None):
 		super(baiduDataset, self).__init__()
@@ -59,11 +58,16 @@ class baiduDataset(Dataset):
 
 	def __getitem__(self, index):
 		image_name = list(self.labels[index].keys())[0]
+		# print(image_name)
 		# label = list(self.labels[index].values())[0]
+		# print(self.img_root+'/'+image_name)
 		image = cv2.imread(self.img_root+'/'+image_name)
 		# print(self.img_root+'/'+image_name)
 		image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 		h, w = image.shape
+		# plt.figure()
+		# plt.imshow(image)
+		# print(image.shape)
 		# Data augmentation
 		# width > len ==> resize width to len
 		# width < len ==> padding width to len 
@@ -71,7 +75,15 @@ class baiduDataset(Dataset):
 		# 	# image = self.compensation(image)
 		# 	image = cv2.resize(image, (0,0), fx=160/w, fy=32/h, interpolation=cv2.INTER_CUBIC)
 		image = cv2.resize(image, (0,0), fx=self.width/w, fy=self.height/h, interpolation=cv2.INTER_CUBIC)
+		# plt.figure()
+		# plt.imshow(image)
+		# print(image.shape)
 		image = (np.reshape(image, (32, self.width, 1))).transpose(2, 0, 1)
+		# image = (np.reshape(image, (32, self.width)))
+		# print(image.shape)
+		# plt.figure()
+		# plt.imshow(image)
+		# plt.show()
 		image = self.preprocessing(image)
 
 		return image, index
@@ -80,7 +92,7 @@ class baiduDataset(Dataset):
 
 
 if __name__ == '__main__':
-	dataset = baiduDataset("H:/DL-DATASET/BaiduTextR/train_images/train_images", "H:/DL-DATASET/BaiduTextR/train.list", params.alphabet, True)
+	dataset = baiduDataset("data_generator/data_set/val_set", "label/train.txt", params.alphabet, True, (280,32))
 	# dataset = baiduDataset("H:/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/test.txt", params.alphabet, False)
 	dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 	# alphabet = utils.to_alphabet("H:/DL-DATASET/BaiduTextR/train.list")

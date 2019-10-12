@@ -16,7 +16,7 @@ import models.crnn as crnn
 import re
 import params
 from dataset_v2 import baiduDataset
-
+import pickle as pkl
 # def init_args():
 #     args = argparse.ArgumentParser()
 #     args.add_argument('--trainroot', help='path to dataset', default='./to_lmdb/train')
@@ -45,7 +45,6 @@ def val(net, val_loader, criterion, iteration, max_i=1000):
     i = 0
     n_correct = 0
     val_loss_avg = utils.averager()
-
     for i_batch, (image, index) in enumerate(val_loader):
         image = image.to(device)
         label = utils.get_batch_label(val_dataset, index)
@@ -77,10 +76,9 @@ def val(net, val_loader, criterion, iteration, max_i=1000):
         print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
 
     # print(n_correct)
-    print("{} of {} is correct".format(n_correct, i_batch * params.val_batchSize))
-    accuracy = n_correct / float(i_batch * params.val_batchSize)
-    print('Test loss: %f, accuray: %f' % (val_loss_avg.val(), accuracy))
-
+    print("{} of {} is correct".format(n_correct, (i_batch+1) * params.val_batchSize))
+    accuracy = n_correct / float((i_batch+1) * params.val_batchSize)
+    print('Test loss: %f, accuray: %f' % (val_loss_avg.val(), accuracy)) 
     return accuracy
 
 def train(crnn, train_loader, criterion, iteration):
@@ -101,6 +99,10 @@ def train(crnn, train_loader, criterion, iteration):
         preds_size = torch.IntTensor([preds.size(0)] * batch_size)
         # print(preds.shape, text.shape, preds_size.shape, length.shape)
         # torch.Size([41, 16, 6736]) torch.Size([160]) torch.Size([16]) torch.Size([16])
+        # print(preds.dtype)
+        # print(text.dtype)
+        # print(preds_size.dtype)
+        # print(length.dtype)
         cost = criterion(preds, text, preds_size, length) / batch_size
         crnn.zero_grad()
         cost.backward()
@@ -114,6 +116,7 @@ def train(crnn, train_loader, criterion, iteration):
 
 def main(crnn, train_loader, val_loader, criterion, optimizer):
 
+    model_dir = '/uuz/song/datasets/OCR/train_gen/train_part_v3/model/'
     crnn = crnn.to(device)
     certerion = criterion.to(device)
     Iteration = 0
@@ -127,13 +130,13 @@ def main(crnn, train_loader, val_loader, criterion, optimizer):
         
         if Iteration % 50 == 1:
             print("saving checkpoint...")
-            torch.save(crnn.state_dict(), '{0}/crnn_Rec_done_{1}_{2}.pth'.format(params.experiment, Iteration, accuracy))
+            torch.save(crnn.state_dict(), model_dir+'{0}/crnn_Rec_done_{1}_{2}.pth'.format(params.experiment, Iteration, accuracy))
             print("done")
         if accuracy > params.best_accuracy:
             params.best_accuracy = accuracy
             print('saving best acc....')
-            torch.save(crnn.state_dict(), '{0}/crnn_Rec_done_{1}_{2}.pth'.format(params.experiment, Iteration, accuracy))
-            torch.save(crnn.state_dict(), '{0}/crnn_best.pth'.format(params.experiment))
+            torch.save(crnn.state_dict(), model_dir+'{0}/crnn_Rec_done_{1}_{2}.pth'.format(params.experiment, Iteration, accuracy))
+            torch.save(crnn.state_dict(), model_dir+'{0}/crnn_best.pth'.format(params.experiment))
             print('done')
         # print("is best accuracy: {0}".format(accuracy > params.best_accuracy))
         Iteration+=1
@@ -151,8 +154,8 @@ if __name__ == '__main__':
     np.random.seed(manualSeed)
     torch.manual_seed(manualSeed)
     cudnn.benchmark = True
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
     # alphabet = alphabet = utils.to_alphabet("H:/DL-DATASET/BaiduTextR/train.list")
 
     # store model path
@@ -164,8 +167,14 @@ if __name__ == '__main__':
     # val_dataset = baiduDataset("H:/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/test.txt", params.alphabet, False, (params.imgW, params.imgH))
     # dataset = baiduDataset("/media/hane/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/train.txt", params.alphabet, False)
     # val_dataset = baiduDataset("/media/hane/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/test.txt", params.alphabet, False)
-    dataset = baiduDataset("/uuz/song/datasets/ocr/train_items", "/home/song/workplace/OCR/ocr_idcard/label/train/train_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
-    val_dataset = baiduDataset("/uuz/song/datasets/ocr/train_items", "/home/song/workplace/OCR/ocr_idcard/label/val/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    
+    # dataset = baiduDataset("/uuz/song/datasets/OCR/train_items", "/home/song/workplace/OCR/ocr_idcard/label/train/train_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    # val_dataset = baiduDataset("/uuz/song/datasets/OCR/train_items", "/home/song/workplace/OCR/ocr_idcard/label/val/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    dataset = baiduDataset("/uuz/song/datasets/OCR/train_items_agency_addr", "/home/song/workplace/OCR/ocr_idcard/label/train/train_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    val_dataset = baiduDataset("/uuz/song/datasets/OCR/train_items_agency_addr", "/home/song/workplace/OCR/ocr_idcard/label/val/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+
+    dataset = baiduDataset("/uuz/song/datasets/OCR/train_gen/train_part_v3/train_items_part_v3_p1_aa", "/uuz/song/datasets/OCR/train_gen/train_part_v3/train_label_p1_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    val_dataset = baiduDataset("/uuz/song/datasets/OCR/train_gen/train_part_v3/train_items_part_v3_p1_aa", "/uuz/song/datasets/OCR/train_gen/train_part_v3/val_label_p1_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
                                                                 #   /home/song/workplace/OCR/ocr_idcard/label/train/train_label_birth_d.txt
     train_loader = DataLoader(dataset, batch_size=params.batchSize, shuffle=True, num_workers=params.workers)
     # shuffle=True, just for time consuming.
