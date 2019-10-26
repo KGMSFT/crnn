@@ -23,7 +23,8 @@ date_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/date_adam_bak
 birth_d_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/birth_d/crnn_Rec_done_51_1.002540650406504.pth'
 birth_y_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/birth_y/crnn_Rec_done_7_0.9929435483870968.pth'
 birth_m_model = "/home/song/workplace/OCR/crnn_chinese_characters_rec/birth_d/crnn_Rec_done_51_1.002540650406504.pth"
-name_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/name/crnn_Rec_done_65_0.9944556451612904.pth'
+# name_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/name/crnn_Rec_done_65_0.9944556451612904.pth'
+name_model = '/home/song/workplace/ocr/model/crnn_Rec_done_65_0.9944556451612904.pth'
 gender_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/gender/crnn_Rec_done_3_0.9939516129032258.pth'
 ethnic_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/ethnic/crnn_Rec_done_37_0.9909274193548387.pth'
 id_model = '/home/song/workplace/OCR/crnn_chinese_characters_rec/id/crnn_Rec_done_10_0.9879032258064516.pth'
@@ -38,13 +39,12 @@ opt = parser.parse_args()
 # 3p6m_third_ac97p8.pth
 # crnn_model_path = 'trained_models/crnn_Rec_done_1.pth'
 # crnn_model_path = 'trained_models/mixed_second_finetune_acc97p7.pth'
-crnn_model_path = aa_model
-alphabet = alphabets.alphabet_agency_addr
+crnn_model_path = name_model
+alphabet = alphabets.alphabet
 nclass = len(alphabet)+1
 
 # crnn文本信息识别
 def crnn_recognition(cropped_image, model):
-
     converter = utils.strLabelConverter(alphabet)
     image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
     ### ratio
@@ -63,21 +63,21 @@ def crnn_recognition(cropped_image, model):
         image = image.cuda()
     image = image.view(1, *image.size())
     image = Variable(image)
-
+    
     model.eval()
     preds = model(image)
+    # print(preds)
 
     _, preds = preds.max(2)
     preds = preds.transpose(1, 0).contiguous().view(-1)
 
     preds_size = Variable(torch.IntTensor([preds.size(0)]))
     sim_pred = converter.decode(preds.data, preds_size.data, raw=False)
-    # print('results: {0}'.format(sim_pred))
+    # print('results: {1}'.format(sim_pred))
     return sim_pred
 
 
 def pred(model_path, save_path, item_name, debug_file):
-    if item_name not in ['name', 'birth_y']
     model = crnn.CRNN(32, 1, nclass, 256)   
     if torch.cuda.is_available():
         model = model.cuda()
@@ -173,10 +173,18 @@ if __name__ == '__main__':
     # debug(model_path='/uuz/song/datasets/OCR/train_gen/train_part_v3/model/aa/crnn_best.pth',
     #     debug_pkl_file='/uuz/song/datasets/OCR/train_gen/train_part_v3/model/aa/debug.pkl',
     #     debug_txt_file='/uuz/song/datasets/OCR/train_gen/train_part_v3/model/aa/debug.txt')
-    pred(model_path = '/uuz/song/datasets/OCR/train_gen/train_part_v3/model/aa/crnn_best.pth',
-        save_path='/uuz/song/datasets/OCR/test_gen/test_part_v3/res_aa_p1.pkl',
-        item_name='aa',
-        debug_file = '/uuz/song/datasets/OCR/test_gen/test_part_v3/res_aa_p1.txt')
+    # pred(model_path = '/home/song/workplace/ocr/model/crnn_Rec_done_65_0.9944556451612904.pth',
+        # save_path='/home/song/workplace/ocr/test.pkl',
+        # item_name='name',
+        # debug_file = '/home/song/workplace/ocr/res_aa_p1.txt')
+    pred(model_path = '/home/song/datasets/ocr/model/name/crnn_Rec_done_200_0.9861111111111112.pth',
+        save_path='/home/song/datasets/ocr/result/res_test_part_v3_name_200.pkl',
+        item_name='name',
+        debug_file = '/home/song/datasets/ocr/result/dug_res_test_part_v3_name_200.txt')
+    # pred(model_path = '/home/song/datasets/ocr/model/aa/crnn_Rec_done_250_0.9996744791666666.pth',
+        # save_path='/home/song/datasets/ocr/result/res_test_part_v3_aa.pkl',
+        # item_name='aa',
+        # debug_file = '/home/song/datasets/ocr/result/dug_res_test_part_v3_aa.txt')
 
 	# crnn network
     # model = crnn.CRNN(32, 1, nclass, 256)

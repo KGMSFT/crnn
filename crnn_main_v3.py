@@ -12,6 +12,7 @@ import numpy as np
 import os
 import utils
 # import dataset
+# import models.crnn_se as crnn
 import models.crnn as crnn
 import re
 import params
@@ -116,7 +117,7 @@ def train(crnn, train_loader, criterion, iteration):
 
 def main(crnn, train_loader, val_loader, criterion, optimizer):
 
-    model_dir = '/home/song/datasets/ocr/model/'
+    model_dir = '/home/song/datasets/ocr/model_se/'
     crnn = crnn.to(device)
     certerion = criterion.to(device)
     Iteration = 0
@@ -168,10 +169,10 @@ if __name__ == '__main__':
     # dataset = baiduDataset("/media/hane/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/train.txt", params.alphabet, False)
     # val_dataset = baiduDataset("/media/hane/DL-DATASET/360M/images", "E:/08-Github-resources/00-MY-GitHub-Entries/crnn_chinese_characters_rec-master/crnn_chinese_characters_rec-master/label/test.txt", params.alphabet, False)
     
-    # dataset = baiduDataset("/uuz/song/datasets/OCR/train_items", "/home/song/workplace/OCR/ocr_idcard/label/train/train_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
-    # val_dataset = baiduDataset("/uuz/song/datasets/OCR/train_items", "/home/song/workplace/OCR/ocr_idcard/label/val/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
-    dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/train_items_part_v3_label/all_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/train_items_part_v3_label/train_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
     val_dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/train_items_part_v3_label/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    # dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/train_items_part_v3_label/all_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
+    # val_dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/train_items_part_v3_label/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
 
     # dataset = baiduDataset("/uuz/song/datasets/OCR/train_gen/train_part_v3/train_items_part_v3_p1_aa", "/uuz/song/datasets/OCR/train_gen/train_part_v3/train_label_p1_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
     # val_dataset = baiduDataset("/uuz/song/datasets/OCR/train_gen/train_part_v3/train_items_part_v3_p1_aa", "/uuz/song/datasets/OCR/train_gen/train_part_v3/val_label_p1_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
@@ -189,6 +190,7 @@ if __name__ == '__main__':
 
     # cnn and rnn
     crnn = crnn.CRNN(32, nc, nclass, params.nh)
+    print(crnn)
 
     crnn.apply(weights_init)
     if params.crnn != '':
