@@ -22,9 +22,9 @@ import cv2
 '''
 
 # 从文字库中随机选择n个字符
-def sto_choice_from_info_str(quantity=10):
+def sto_choice_from_info_str(quantity=3):
     start = random.randint(0, len(info_str)-11)
-    end = start + 10
+    end = start + quantity
     random_word = info_str[start:end]
 
     return random_word
@@ -91,13 +91,15 @@ def random_x_y(bground_size, font_size):
     width, height = bground_size
     #print(bground_size)
     # 为防止文字溢出图片，x，y要预留宽高
-    x = random.randint(0, width-font_size*10)
+    # x = random.randint(0, width-font_size*10)
+    x = random.randint(0, width-font_size*3)
     y = random.randint(0, int((height-font_size)/4))
 
     return x, y
 
 def random_font_size():
-    font_size = random.randint(24,27)
+    # font_size = random.randint(24,27)
+    font_size = 16
 
     return font_size
 
@@ -110,9 +112,10 @@ def random_font(font_path):
 def main(save_path, num, file):
 
     # 随机选取10个字符
-    random_word = sto_choice_from_info_str(10)
+    random_word = sto_choice_from_info_str(3)
     # 生成一张背景图片，已经剪裁好，宽高为32*280
-    raw_image = create_an_image('./background/', 280, 32)
+    # raw_image = create_an_image('./background/', 280, 32)
+    raw_image = create_an_image('/home/song/workplace/ocr/text_renderer/data/bg/', 100, 32)
 
     # 随机选取字体大小
     font_size = random_font_size()
@@ -141,13 +144,17 @@ def main(save_path, num, file):
 if __name__ == '__main__':
    
     # 处理具有工商信息语义信息的语料库，去除空格等不必要符号
-    with open('info.txt', 'r', encoding='utf-8') as file:
-        info_list = [part.strip().replace('\t', '') for part in file.readlines()]
-        info_str = ''.join(info_list)
+    # with open('info.txt', 'r', encoding='utf-8') as file:
+        # info_list = [part.strip().replace('\t', '') for part in file.readlines()]
+        # info_str = ''.join(info_list)
+    
+    with open('/home/song/workplace/ocr/text_renderer/data/my_list_corpus/name.txt', 'r', encoding='utf-8') as file:
+        name = [name.strip()  for name in file.readlines()]
+        info_str = ''.join(name)
 
     # 图片标签
     file  = open('data_set/val_set.txt', 'w', encoding='utf-8')
-    total = 1000
+    total = 10
     for num in range(0,total):
         main('data_set/val_set/', num, file)
         if num % 1000 == 0:
