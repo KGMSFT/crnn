@@ -121,13 +121,14 @@ def train(crnn, train_loader, criterion, iteration, writer):
         writer.add_scalar("scalar/train_loss", loss_avg.val(),iteration)
 
 def main(crnn, train_loader, val_loader, criterion, optimizer):
-    writer = SummaryWriter("/home/song/datasets/ocr/logs/test_log")
-    model_dir = '/home/song/datasets/ocr/models/model_test/'
+    log_dir = "/home/song/datasets/ocr/models/model_mix_train_and_genall_alp/name/log"
+    model_dir = '/home/song/datasets/ocr/models/model_mix_train_and_genall_alp/'
     crnn = crnn.to(device)
     certerion = criterion.to(device)
     Iteration = 0
     params.best_accuracy = 0.0
     while Iteration < params.niter:
+      with SummaryWriter(log_dir) as writer:
         train(crnn, train_loader,criterion, Iteration, writer)
         ## max_i: cut down the consuming time of testing, if you'd like to validate on the whole testset, please set it to len(val_loader)
         accuracy = val(crnn, val_loader, criterion, Iteration, writer, max_i=1000)
@@ -146,7 +147,6 @@ def main(crnn, train_loader, val_loader, criterion, optimizer):
             print('done')
         # print("is best accuracy: {0}".format(accuracy > params.best_accuracy))
         Iteration+=1
-    writer.close()
 
 def backward_hook(self, grad_input, grad_output):
     for g in grad_input:
@@ -183,7 +183,7 @@ if __name__ == '__main__':
         transforms.Normalize(params.mean, params.std)
         ])
     val_tfs = transforms.Normalize(params.mean, params.std)
-    dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/train_items_part_v3_label/train_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH),transforms=train_tfs)
+    dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/mixset/train_and_genall_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH),transforms=train_tfs)
     val_dataset = baiduDataset("/home/song/datasets/ocr/train_items_part_v3_p1", "/home/song/datasets/ocr/train_items_part_v3_label/val_label_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH),transforms=val_tfs)
 
     # dataset = baiduDataset("/uuz/song/datasets/OCR/train_gen/train_part_v3/train_items_part_v3_p1_aa", "/uuz/song/datasets/OCR/train_gen/train_part_v3/train_label_p1_{}.txt".format(params.experiment), params.alphabet, False, (params.imgW, params.imgH))
